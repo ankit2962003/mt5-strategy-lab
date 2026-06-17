@@ -1,0 +1,6 @@
+# Pin the libraries this project needs, e.g.:
+# pandas
+# numpy
+# python-dotenv
+# MetaTrader5
+# smartapi-python

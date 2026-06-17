@@ -1,0 +1,38 @@
+# ── Secrets — NEVER commit these ────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+config_secret.py
+credentials.json
+
+# ── Trading data / personal results ─────────────────────────────────────────
+*.csv
+*.log
+logs/
+backtest_log*.csv
+forward_test_log*.csv
+*_log.csv
+
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ── Tooling / OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Keep a sample of data if you want to show format — un-ignore it explicitly:
+# !sample_data.csv
