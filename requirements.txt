@@ -1,6 +1,4 @@
-# Pin the libraries this project needs, e.g.:
-# pandas
-# numpy
-# python-dotenv
-# MetaTrader5
-# smartapi-python
+numpy>=1.24
+pandas>=2.0
+matplotlib>=3.7      # optional: monte_carlo.py plots
+MetaTrader5>=5.0.45  # optional: tick_replay.py live tick pull (Windows only)

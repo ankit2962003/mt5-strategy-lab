@@ -1,69 +1,72 @@
-﻿# mt5-strategy-lab
+# mt5-strategy-lab
 
-> One-line description of what this project does.
+**Validation infrastructure for systematic trading research** — the machinery that decides
+whether a strategy result is real, and the execution realism that stops a backtest from
+flattering itself.
 
-A short paragraph: what problem it solves, what market/instrument it trades or
-analyzes, and what makes it interesting. Keep it to 3â€“4 sentences.
+> **Scope note:** this repository publishes the *validation and execution infrastructure*,
+> deliberately **not** the strategy logic (signal generation, evolved rule sets, or the
+> live research pipeline). The interesting engineering here is the guardrails, not the
+> signals. Some modules therefore reference strategy-side helpers that are not included —
+> see [Not included](#not-included).
 
 ---
 
-## Features
+## The problem this exists to solve
 
-- Feature one
-- Feature two
-- Feature three
+Generate enough candidate strategies and some will clear any threshold by luck alone. A
+single 70/30 split gives you one out-of-sample path and one number — easy to get lucky on.
+And a clean-OHLC backtest is fiction that dies on live spread: a gold strategy that showed
+**+0.47R on paper bled negative live purely on spread**.
 
-## Results
+Every module here exists because of a specific way that research goes wrong.
 
-> Recruiters skim. A table or a chart here is worth more than 500 lines of code.
+## `validation/` — not fooling yourself
 
-| Metric            | Value   |
-| ----------------- | ------- |
-| Backtest period   | YYYYâ€“YYYY |
-| Win rate          | XX %    |
-| Max drawdown      | XX %    |
-| Sharpe / return   | X.XX    |
+| Module | What it does | Failure mode it kills |
+|---|---|---|
+| **`stat_guard.py`** | Deflated Sharpe Ratio + Benjamini–Hochberg FDR control | Multiple testing. Test 1,000 evolved genes and the best one looks great by construction. DSR asks whether the winner beats what the *best of N random tries* would have produced. |
+| **`cpcv.py`** | Combinatorial Purged Cross-Validation (López de Prado) | Single-split luck. Splits bars into N groups, holds out k in **every** combination, and purges/embargoes around the boundary so leakage across adjacent bars can't inflate the score. |
+| **`holdout.py`** | A walled-off, **rotating** window the search never trains on | Contamination. If graduation is decided on data the optimiser already saw, every "winner" is compromised. |
+| **`sprt.py`** | Wald's Sequential Probability Ratio Test on expectancy | Wasted samples. Fixed thresholds ("graduate at 15 trades") make an obvious loser wait; SPRT stops as soon as the evidence is decisive, in either direction. |
 
-<!-- Drop an equity-curve image here once you have one:
-![Equity curve](docs/equity_curve.png)
--->
+## `execution/` — not flattering yourself
 
-## Tech stack
+| Module | What it does |
+|---|---|
+| **`tick_replay.py`** | Backtests on **real MT5 tick data**, paying the actual bid/ask spread and slippage on every fill rather than assuming mid-price execution. |
+| **`monte_carlo.py`** | Risk-of-ruin and funded-challenge pass odds by resampling a strategy's real trade record thousands of times — answering "how often do I survive?", not "what was the backtest expectancy?" |
 
-Python Â· (list libraries, e.g. pandas, MetaTrader5, SmartApi) Â· ...
+---
 
-## Setup
+## Design principles
 
-```bash
-# 1. Clone
-git clone https://github.com/<your-username>/<repo>.git
-cd <repo>
+- **A method that can only confirm you isn't a method.** Every component here can return a
+  negative verdict, and negative verdicts are the point.
+- **Pessimistic by default.** Costs, spread and slippage are charged against you; where an
+  assumption is uncertain, the unfavourable one is used.
+- **Purge and embargo, always.** Adjacent bars leak. Cross-validation that ignores this
+  reports a number that cannot survive contact with live data.
+- **State the sample size.** An underpowered result is reported as underpowered, not
+  rounded up into a conclusion.
 
-# 2. Install dependencies
-pip install -r requirements.txt
+## Not included
 
-# 3. Configure secrets
-cp .env.example .env      # then fill in your real keys in .env
-```
+These modules are extracted from a larger private research monorepo and reference
+strategy-side helpers that are intentionally withheld:
 
-## Usage
+- `strategy_lab` — signal predicates and take-profit logic (`cpcv.py`, `tick_replay.py`)
+- `self_improve` — the live track record store (`monte_carlo.py`)
 
-```bash
-python src/main.py
-```
+`stat_guard.py`, `holdout.py` and `sprt.py` are self-contained and depend only on NumPy.
+The others will raise `ImportError` on a bare clone — they are published to show the
+approach, not as a turnkey install.
 
-## Configuration
+## Requirements
 
-All secrets and tunable settings are read from environment variables (see
-`.env.example`). **No credentials are ever committed to this repo.**
+Python 3.10+, NumPy. `pandas`/`MetaTrader5` for tick replay (Windows), `matplotlib`
+optionally for Monte Carlo plots. See [`requirements.txt`](requirements.txt).
 
-## Disclaimer
+## Licence
 
-This project is for **educational and research purposes only**. It is not
-financial advice. Trading involves substantial risk of loss. Use at your own
-risk.
-
-## License
-
-MIT â€” see [LICENSE](LICENSE).
-
+See [LICENSE](LICENSE).
